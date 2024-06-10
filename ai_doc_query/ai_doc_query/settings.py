@@ -31,7 +31,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
-    'user',
+    'doc_query',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -73,8 +73,10 @@ WSGI_APPLICATION = 'ai_doc_query.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
+import mongoengine
+mongoengine.connect(db="docquery", host="mongodb://localhost:27017")
 
-DATABASES = {
+"""DATABASES = {
     'default': {
         'ENGINE': 'djongo',
         'NAME': 'ai_doc_query',
@@ -83,7 +85,8 @@ DATABASES = {
             'port': 27017,  # MongoDB port
         }
     }
-}
+}"""
+
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators

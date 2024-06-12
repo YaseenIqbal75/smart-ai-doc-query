@@ -44,4 +44,3 @@ class File(Document):
 
     def __str__(self):
         return self.name
-    

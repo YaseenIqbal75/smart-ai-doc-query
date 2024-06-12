@@ -32,6 +32,7 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     'doc_query',
+    'rest_framework',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -76,16 +77,12 @@ WSGI_APPLICATION = 'ai_doc_query.wsgi.application'
 import mongoengine
 mongoengine.connect(db="docquery", host="mongodb://localhost:27017")
 
-"""DATABASES = {
+DATABASES = {
     'default': {
-        'ENGINE': 'djongo',
-        'NAME': 'ai_doc_query',
-        'CLIENT': {
-            'host': 'localhost',  # MongoDB host
-            'port': 27017,  # MongoDB port
-        }
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': 'mydatabase',
     }
-}"""
+}
 
 
 # Password validation

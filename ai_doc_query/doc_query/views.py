@@ -265,3 +265,70 @@ class MessageApis(View):
             return JsonResponse({"message": str(d)}, status = 400)
         except Exception as e:
             return JsonResponse({"message": str(e)}, status = 500)
+
+@method_decorator(csrf_exempt, name="dispatch")
+class FileApis(View):
+    def get(self,request,id=None):
+        if id:
+            try:
+                req_file = File.objects.get(pk=id)
+                file_obj = {
+                    "id": str(req_file.id),
+                    "name": req_file.name,
+                    "chat": req_file.chat.title
+                }
+                return JsonResponse(file_obj,status=200)
+            except DoesNotExist as d:
+                return JsonResponse({"message": str(d)} , status=400)
+            except Exception as e:
+                return JsonResponse({"message" : str(e)}, status = 500)
+        else:
+            try:
+                file_list = []
+
+                for file in File.objects:
+                    file_obj = {
+                    "id": str(file.id),
+                    "name": file.name,
+                    "chat": file.chat.title
+                    }
+                    file_list.append(file_obj)
+
+                return JsonResponse(file_list, safe=False, status= 200)
+            except Exception as e:
+                return JsonResponse({"message" : str(e)}, status = 500)
+
+    def post(self, request):
+        try:
+            data = json.loads(request.body)
+
+            path = data.get("path")
+            chat = data.get("chat") # would be static currently
+
+            if not path or not chat:
+                return JsonResponse({"message" : "File path and chat id required"}, status= 400)
+
+            file_name = path.split("/")[-1]
+            file_name = file_name.split(".")[0]
+            print(file_name)
+
+            new_file = File(name= file_name, chat = chat)
+            with open(path, "rb") as f:
+                new_file.file.put(f, content_type = "application/pdf")
+            new_file.save()
+
+            return JsonResponse({"message":"File created successfuly"}, status = 201)
+        except Exception as e:
+            return JsonResponse({"message": str(e)}, status = 500)
+
+    def delete(self,request,id):
+        try:
+            req_file = File.objects.get(pk=id)
+            req_file.file.delete()
+            req_file.save()
+            req_file.delete()
+            return  JsonResponse({"message": "File deleted successfully"} , status=204)
+        except DoesNotExist as d:
+            return JsonResponse({"message": str(d)}, status = 400)
+        except Exception as e:
+            return JsonResponse({"message": str(e)}, status = 500)

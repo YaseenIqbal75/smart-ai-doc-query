@@ -21,7 +21,7 @@ class UserApis(View):
                     "password": user.password
                 }
                 return JsonResponse(user_data, status=200)
-            except User.DoesNotExist:
+            except DoesNotExist:
                 return JsonResponse({"message": "User does not exist"}, status=404)
             except Exception as e:
                 return JsonResponse({"message": str(e)}, status=400)
@@ -73,7 +73,7 @@ class UserApis(View):
 
             try:
                 req_user = User.objects.get(pk=id)
-            except User.DoesNotExist:
+            except DoesNotExist:
                 return JsonResponse({"message": "User does not exist"}, status=404)
 
             req_user.password = password
@@ -109,7 +109,7 @@ class ChatApis(View):
                     "id": str(chat.id),
                     "title" : chat.title,
                     "creation_timestamp": chat.creation_timestamp,
-                    "owner" : User.objects.get(pk=chat.owner.id).email
+                    "owner" : chat.owner.email
                 }
                 return JsonResponse(chat_data, status = 200)
             except Exception as e:
@@ -122,7 +122,7 @@ class ChatApis(View):
                     "id": str(chat.id),
                     "title" : chat.title,
                     "creation_timestamp": chat.creation_timestamp,
-                    "owner" : User.objects(pk = chat.owner.id).first().email
+                    "owner" : chat.owner.email
                     }
                     chat_list.append(chat_data)
                 return JsonResponse(chat_list,safe=False,status = 200)
@@ -132,17 +132,20 @@ class ChatApis(View):
     def post(self,request):
         try:
             data = json.loads(request.body)
+
             title = data.get("title")
-            owner = User.objects(email="arslanwaqar421@gmail.com").first() # static user
+            owner_id = data.get("owner_id")
 
-            if not title or not owner:
-                return JsonResponse({"message" : "Chat title and Owner required"}, status = 400)
+            if not title or not owner_id:
+                return JsonResponse({"message" : "Chat title and owner_id required"}, status = 400)
 
-            new_chat = Chat(title = title , owner = owner)
+            new_chat = Chat(title = title , owner = owner_id)
             new_chat.save()
 
             return JsonResponse({"message" : "Chat created successfully"},status = 201)
 
+        except json.JSONDecodeError:
+            return JsonResponse({"message": "Invalid JSON"}, status=400)
         except Exception as e:
             return JsonResponse({"message" : str(e)}, status = 400)
 
@@ -159,11 +162,14 @@ class ChatApis(View):
                 req_chat.title = title
                 req_chat.save()
                 return JsonResponse({"message": "Title updated"}, status=200)
+
+            except json.JSONDecodeError:
+                return JsonResponse({"message": "Invalid JSON"}, status=400)
             except DoesNotExist:
                 return JsonResponse({"message" : "Chat does not exist"}, status = 404)
 
         except Exception as e:
-            return JsonResponse({"message" : str(e)}, status = 400)
+            return JsonResponse({"message" : str(e)}, status = 500)
 
     def delete(self, request, id):
         try:
@@ -192,7 +198,7 @@ class MessageApis(View):
 
                 return JsonResponse(msg ,status = 200)
             except DoesNotExist:
-                return JsonResponse({"message" : "Message does not exist"}, status = 400)
+                return JsonResponse({"message" : "Message does not exist"}, status = 404)
             except Exception as e:
                 return JsonResponse({"message" : str(e)}, status= 500)
         else:
@@ -218,9 +224,9 @@ class MessageApis(View):
 
             msg_txt = data.get("msg_txt")
             type = data.get("type")
-            chat = Chat.objects.get(pk=data.get("chat")) #static chat
+            chat_id = data.get("chat_id")
 
-            if not msg_txt or not type or not chat:
+            if not msg_txt or not type or not chat_id:
                 return JsonResponse({"message": "Message text , type and chat are required"}, status =400)
 
             if type == "bot":
@@ -230,11 +236,13 @@ class MessageApis(View):
             else:
                 return JsonResponse({"message":"Message type can either be 'user' or 'bot' "},status= 400)
 
-            new_msg = Message(msg_txt=msg_txt , type=type , chat=chat)
+            new_msg = Message(msg_txt=msg_txt , type=type , chat=chat_id)
             new_msg.save()
             return JsonResponse({"message" : "Message created successfully"},status = 201)
+        except json.JSONDecodeError:
+            return JsonResponse({"message": "Invalid JSON"}, status=400)
         except DoesNotExist as d:
-            return JsonResponse({"message": str(d)},status = 400)
+            return JsonResponse({"message": "Message does not exist"},status = 404)
         except Exception as e:
             return JsonResponse({"message": str(e)}, status= 500)
 
@@ -244,15 +252,18 @@ class MessageApis(View):
 
             new_txt = data.get("new_txt")
 
-            if not id or not new_txt:
+            if not new_txt:
                 return JsonResponse({"message": "New text is required"}, status= 400)
 
             req_msg = Message.objects.get(pk=id)
             req_msg.msg_txt = new_txt
             req_msg.save()
             return JsonResponse({"message": "Message updated succesfully"}, status = 200)
+
+        except json.JSONDecodeError:
+            return JsonResponse({"message": "Invalid JSON"}, status=400)
         except DoesNotExist as d:
-            return JsonResponse({"message" : str(d)}, status = 400)
+            return JsonResponse({"message" : "Message does not exist"}, status = 404)
         except Exception as e:
             return JsonResponse({"message" : str(e)}, status = 500)
 
@@ -262,7 +273,7 @@ class MessageApis(View):
             req_msg.delete()
             return JsonResponse({"message":"Message deleted successfully"}, status= 204)
         except DoesNotExist as d:
-            return JsonResponse({"message": str(d)}, status = 400)
+            return JsonResponse({"message": "Message does not exist"}, status = 404)
         except Exception as e:
             return JsonResponse({"message": str(e)}, status = 500)
 
@@ -279,7 +290,7 @@ class FileApis(View):
                 }
                 return JsonResponse(file_obj,status=200)
             except DoesNotExist as d:
-                return JsonResponse({"message": str(d)} , status=400)
+                return JsonResponse({"message": "File does not exist"} , status=404)
             except Exception as e:
                 return JsonResponse({"message" : str(e)}, status = 500)
         else:
@@ -303,21 +314,24 @@ class FileApis(View):
             data = json.loads(request.body)
 
             path = data.get("path")
-            chat = data.get("chat") # would be static currently
+            chat_id = data.get("chat_id") # would be static currently
 
-            if not path or not chat:
+            if not path or not chat_id:
                 return JsonResponse({"message" : "File path and chat id required"}, status= 400)
 
             file_name = path.split("/")[-1]
             file_name = file_name.split(".")[0]
             print(file_name)
 
-            new_file = File(name= file_name, chat = chat)
+            new_file = File(name= file_name, chat = chat_id)
             with open(path, "rb") as f:
                 new_file.file.put(f, content_type = "application/pdf")
             new_file.save()
 
             return JsonResponse({"message":"File created successfuly"}, status = 201)
+
+        except json.JSONDecodeError:
+            return JsonResponse({"message": "Invalid JSON"}, status=400)
         except Exception as e:
             return JsonResponse({"message": str(e)}, status = 500)
 
@@ -329,6 +343,6 @@ class FileApis(View):
             req_file.delete()
             return  JsonResponse({"message": "File deleted successfully"} , status=204)
         except DoesNotExist as d:
-            return JsonResponse({"message": str(d)}, status = 400)
+            return JsonResponse({"message": "File does not exist"}, status = 404)
         except Exception as e:
             return JsonResponse({"message": str(e)}, status = 500)

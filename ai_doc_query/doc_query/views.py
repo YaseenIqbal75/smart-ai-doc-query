@@ -5,6 +5,7 @@ import json
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+from .jwt_utils import *
 
 
 
@@ -24,7 +25,7 @@ class UserApis(View):
             except DoesNotExist:
                 return JsonResponse({"message": "User does not exist"}, status=404)
             except Exception as e:
-                return JsonResponse({"message": str(e)}, status=400)
+                return JsonResponse({"message": str(e)}, status=500)
         else:
             try:
                 users_list = []
@@ -39,7 +40,7 @@ class UserApis(View):
 
                 return JsonResponse(users_list, safe=False, status=200)
             except Exception as e:
-                return JsonResponse({"message": str(e)}, status=400)
+                return JsonResponse({"message": str(e)}, status=500)
 
     def post(self,request):
         try:
@@ -53,7 +54,11 @@ class UserApis(View):
             if User.objects(email=email).first():
                 return JsonResponse({"message": "User with this email already exists"}, status=400)
 
-            new_user = User(email=email, password=password)
+            token, exp_time = generate_jwt(email)
+            print(token)
+            print(exp_time)
+
+            new_user = User(email=email, password=password, auth_token = token)
             new_user.save()
 
             return JsonResponse({"email": email, "password": password}, status=201)
@@ -61,10 +66,22 @@ class UserApis(View):
         except json.JSONDecodeError:
             return JsonResponse({"message": "Invalid JSON"}, status=400)
         except Exception as e:
-            return JsonResponse({'message': str(e)}, status=400)
+            return JsonResponse({'message': str(e)}, status=500)
 
     def put(self,request,id):
         try:
+            headers = request.headers
+            auth_header = headers.get("Authorization")
+            if not auth_header or not auth_header.startswith("Bearer "):
+                return JsonResponse({"message": "Authorization token not supplied or improperly formatted"}, status=401)
+
+            token = auth_header.split(" ")[1]
+            print(token)
+            response = verify_jwt(token)
+
+            if response.get('status') == False:
+                return JsonResponse({"message" : response.get('msg')}, status = 401)
+            print(response.get('msg'))
             data = json.loads(request.body)
             password = data.get('password')
 
@@ -85,7 +102,7 @@ class UserApis(View):
         except Exception as e:
             return JsonResponse({"message": str(e)}, status=400)
         
-    def delete(self,request,id):
+    def delete(self,request,id): # not wrapped yet with JWT tokens
         try:
             try:
                 req_user = User.objects.get(pk=id)
@@ -102,6 +119,16 @@ class UserApis(View):
 @method_decorator(csrf_exempt, name='dispatch')
 class ChatApis(View):
     def get(self,request, id=None):
+        headers = request.headers
+        auth_header = headers.get("Authorization")
+        if not auth_header or not auth_header.startswith("Bearer "):
+            return JsonResponse({"message": "Authorization token not supplied or improperly formatted"}, status=401)
+
+        token = auth_header.split(" ")[1]
+        print(token)
+        response = verify_jwt(token)
+        if response.get('status') == False:
+            return JsonResponse({"message" : response.get('msg')}, status = 401)
         if id:
             try:
                 chat = Chat.objects.get(pk=id)
@@ -113,7 +140,7 @@ class ChatApis(View):
                 }
                 return JsonResponse(chat_data, status = 200)
             except Exception as e:
-                return JsonResponse({"message" : str(e)}, status = 400)
+                return JsonResponse({"message" : str(e)}, status = 500)
         else:
             try:
                 chat_list = []
@@ -127,10 +154,22 @@ class ChatApis(View):
                     chat_list.append(chat_data)
                 return JsonResponse(chat_list,safe=False,status = 200)
             except Exception as e:
-                return JsonResponse({"message" : str(e)}, status = 400)
+                return JsonResponse({"message" : str(e)}, status = 500)
 
     def post(self,request):
         try:
+            headers = request.headers
+            auth_header = headers.get("Authorization")
+            if not auth_header or not auth_header.startswith("Bearer "):
+                return JsonResponse({"message": "Authorization token not supplied or improperly formatted"}, status=401)
+
+            token = auth_header.split(" ")[1]
+            print(token)
+            response = verify_jwt(token)
+
+            if response.get('status') == False:
+                return JsonResponse({"message" : response.get('msg')}, status = 401)
+
             data = json.loads(request.body)
 
             title = data.get("title")
@@ -147,10 +186,22 @@ class ChatApis(View):
         except json.JSONDecodeError:
             return JsonResponse({"message": "Invalid JSON"}, status=400)
         except Exception as e:
-            return JsonResponse({"message" : str(e)}, status = 400)
+            return JsonResponse({"message" : str(e)}, status =500)
 
     def put(self,request,id):
         try:
+            headers = request.headers
+            auth_header = headers.get("Authorization")
+            if not auth_header or not auth_header.startswith("Bearer "):
+                return JsonResponse({"message": "Authorization token not supplied or improperly formatted"}, status=401)
+
+            token = auth_header.split(" ")[1]
+            print(token)
+            response = verify_jwt(token)
+
+            if response.get('status') == False:
+                return JsonResponse({"message" : response.get('msg')}, status = 401)
+
             data = json.loads(request.body)
             title = data.get("title")
 
@@ -173,6 +224,16 @@ class ChatApis(View):
 
     def delete(self, request, id):
         try:
+            headers = request.headers
+            auth_header = headers.get("Authorization")
+            if not auth_header or not auth_header.startswith("Bearer "):
+                return JsonResponse({"message": "Authorization token not supplied or improperly formatted"}, status=401)
+
+            token = auth_header.split(" ")[1]
+            print(token)
+            response = verify_jwt(token)
+            if response.get('status') == False:
+                return JsonResponse({"message" : response.get('msg')}, status = 401)
             try:
                 req_chat = Chat.objects.get(pk=id)
             except DoesNotExist:
@@ -181,12 +242,24 @@ class ChatApis(View):
             req_chat.delete()
             return JsonResponse({"message" : "Chat deleted succesfully"}, status=204)
         except Exception as e:
-            return JsonResponse({"message" : str(e)})
+            return JsonResponse({"message" : str(e)},status=500)
 
 
 @method_decorator(csrf_exempt, name="dispatch")
 class MessageApis(View):
     def get(self, request, id=None):
+        headers = request.headers
+        auth_header = headers.get("Authorization")
+        if not auth_header or not auth_header.startswith("Bearer "):
+            return JsonResponse({"message": "Authorization token not supplied or improperly formatted"}, status=401)
+
+        token = auth_header.split(" ")[1]
+        print(token)
+        response = verify_jwt(token)
+
+        if response.get('status') == False:
+            return JsonResponse({"message" : response.get('msg')}, status = 401)
+
         if id:
             try:
                 req_msg = Message.objects.get(pk=id)
@@ -220,6 +293,18 @@ class MessageApis(View):
 
     def post(self, request):
         try:
+            headers = request.headers
+            auth_header = headers.get("Authorization")
+            if not auth_header or not auth_header.startswith("Bearer "):
+                return JsonResponse({"message": "Authorization token not supplied or improperly formatted"}, status=401)
+
+            token = auth_header.split(" ")[1]
+            print(token)
+            response = verify_jwt(token)
+
+            if response.get('status') == False:
+                return JsonResponse({"message" : response.get('msg')}, status = 401)
+
             data = json.loads(request.body)
 
             msg_txt = data.get("msg_txt")
@@ -241,13 +326,23 @@ class MessageApis(View):
             return JsonResponse({"message" : "Message created successfully"},status = 201)
         except json.JSONDecodeError:
             return JsonResponse({"message": "Invalid JSON"}, status=400)
-        except DoesNotExist as d:
-            return JsonResponse({"message": "Message does not exist"},status = 404)
         except Exception as e:
             return JsonResponse({"message": str(e)}, status= 500)
 
     def put(self, request, id):
         try:
+            headers = request.headers
+            auth_header = headers.get("Authorization")
+            if not auth_header or not auth_header.startswith("Bearer "):
+                return JsonResponse({"message": "Authorization token not supplied or improperly formatted"}, status=401)
+
+            token = auth_header.split(" ")[1]
+            print(token)
+            response = verify_jwt(token)
+
+            if response.get('status') == False:
+                return JsonResponse({"message" : response.get('msg')}, status = 401)
+
             data = json.loads(request.body)
 
             new_txt = data.get("new_txt")
@@ -269,6 +364,18 @@ class MessageApis(View):
 
     def delete(self,request,id):
         try:
+            headers = request.headers
+            auth_header = headers.get("Authorization")
+            if not auth_header or not auth_header.startswith("Bearer "):
+                return JsonResponse({"message": "Authorization token not supplied or improperly formatted"}, status=401)
+
+            token = auth_header.split(" ")[1]
+            print(token)
+            response = verify_jwt(token)
+
+            if response.get('status') == False:
+                return JsonResponse({"message" : response.get('msg')}, status = 401)
+
             req_msg = Message.objects.get(pk = id)
             req_msg.delete()
             return JsonResponse({"message":"Message deleted successfully"}, status= 204)
@@ -280,6 +387,18 @@ class MessageApis(View):
 @method_decorator(csrf_exempt, name="dispatch")
 class FileApis(View):
     def get(self,request,id=None):
+        headers = request.headers
+        auth_header = headers.get("Authorization")
+        if not auth_header or not auth_header.startswith("Bearer "):
+            return JsonResponse({"message": "Authorization token not supplied or improperly formatted"}, status=401)
+
+        token = auth_header.split(" ")[1]
+        print(token)
+        response = verify_jwt(token)
+
+        if response.get('status') == False:
+            return JsonResponse({"message" : response.get('msg')}, status = 401)
+
         if id:
             try:
                 req_file = File.objects.get(pk=id)
@@ -311,6 +430,18 @@ class FileApis(View):
 
     def post(self, request):
         try:
+            headers = request.headers
+            auth_header = headers.get("Authorization")
+            if not auth_header or not auth_header.startswith("Bearer "):
+                return JsonResponse({"message": "Authorization token not supplied or improperly formatted"}, status=401)
+
+            token = auth_header.split(" ")[1]
+            print(token)
+            response = verify_jwt(token)
+
+            if response.get('status') == False:
+                return JsonResponse({"message" : response.get('msg')}, status = 401)
+
             data = json.loads(request.body)
 
             path = data.get("path")
@@ -337,6 +468,17 @@ class FileApis(View):
 
     def delete(self,request,id):
         try:
+            headers = request.headers
+            auth_header = headers.get("Authorization")
+            if not auth_header or not auth_header.startswith("Bearer "):
+                return JsonResponse({"message": "Authorization token not supplied or improperly formatted"}, status=401)
+
+            token = auth_header.split(" ")[1]
+            print(token)
+            response = verify_jwt(token)
+
+            if response.get('status') == False:
+                return JsonResponse({"message" : response.get('msg')}, status = 401)
             req_file = File.objects.get(pk=id)
             req_file.file.delete()
             req_file.save()

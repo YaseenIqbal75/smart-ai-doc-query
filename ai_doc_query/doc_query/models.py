@@ -10,6 +10,7 @@ class MessageType(Enum):
 class User(Document):
     email = EmailField(required = True, unique = True)
     password = StringField(required=True)
+    auth_token = StringField(reqiured = True)
 
     def __str__(self):
         return self.email
@@ -17,7 +18,7 @@ class User(Document):
 
 
 class Chat(Document):
-    title = StringField(max_length=30, unique = True, required = True)
+    title = StringField(max_length=100, unique = True, required = True)
     creation_timestamp = DateTimeField(default=datetime.datetime.now())
     owner = ReferenceField(User , reverse_delete_rule=CASCADE)
 

@@ -9,7 +9,7 @@ algorithm = "HS256"
 def generate_jwt(email):
     payload = {
         "email" : email,
-        "exp" : datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(hours=2)
+        "exp" : datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(days=5)
     }
     encoded = jwt.encode(payload, key, algorithm)
     print(encoded)

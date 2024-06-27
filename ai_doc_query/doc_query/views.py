@@ -1,4 +1,4 @@
-from django.http import JsonResponse
+from django.http import JsonResponse,HttpResponse
 from .models import *
 import json
 from django.views import View
@@ -60,7 +60,7 @@ class UserApis(View):
             new_user = User(email=email, password=password, auth_token = token)
             new_user.save()
 
-            return JsonResponse({"email": email, "password": password}, status=201)
+            return JsonResponse({"id": str(new_user.id),"email": email, "password": password}, status=201)
 
         except json.JSONDecodeError:
             return JsonResponse({"message": "Invalid JSON"}, status=400)
@@ -142,15 +142,18 @@ class ChatApis(View):
                 return JsonResponse({"message" : str(e)}, status = 500)
         else:
             try:
+                decoded = response.get('msg')
+                user_email = decoded.get("email")
                 chat_list = []
                 for chat in Chat.objects:
-                    chat_data= {
-                    "id": str(chat.id),
-                    "title" : chat.title,
-                    "creation_timestamp": chat.creation_timestamp,
-                    "owner" : chat.owner.email
-                    }
-                    chat_list.append(chat_data)
+                    if chat.owner.email == user_email:
+                        chat_data= {
+                        "id": str(chat.id),
+                        "title" : chat.title,
+                        "creation_timestamp": chat.creation_timestamp,
+                        "owner" : chat.owner.email
+                        }
+                        chat_list.append(chat_data)
                 return JsonResponse(chat_list,safe=False,status = 200)
             except Exception as e:
                 return JsonResponse({"message" : str(e)}, status = 500)
@@ -487,3 +490,12 @@ class FileApis(View):
             return JsonResponse({"message": "File does not exist"}, status = 404)
         except Exception as e:
             return JsonResponse({"message": str(e)}, status = 500)
+
+
+@csrf_exempt
+def hello_world(request):
+    print(request.headers)
+    if(request.method == "GET"):
+        return HttpResponse("Got the requesst")
+    else:
+        return HttpResponse(status=404)

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import botImage from "../assets/images/bit_image.jpeg" 
 import {
   MDBContainer,
@@ -15,13 +15,59 @@ import Scrollbars from "react-custom-scrollbars-2"
 
 export default function Chatroom() {
     const [selectedFiles,setSelectedFiles] = useState([])
+    const [chatHistory, setChatHistory] = useState([])
 
-    const handleSubmit = (event)=>{
-        console.log("Uploading Files")
+    useEffect(()=>{
+      console.log("Fetching User Chats...")
+      fetch("http://127.0.0.1:8000/doc_query/chat/",{
+        method : "GET",
+        headers: {
+          "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3QyQGdtYWlsLmNvbSIsImV4cCI6MTcxOTkyMjQ5M30.bl6vShNqutBa2bQG9QmN895iiQLN5QgJFB7Z2XaLRFM",
+          "Content-Type" : "application/json"
+        }
+      })
+      .then((response)=>{
+        if(!response.ok){
+          throw new Error("Server response was not ok")
+        }
+        return response.json()
+      })
+      .then((data)=>{
+        console.log(data)
+        setChatHistory(data)})
+      .catch((error) =>console.error("There was a problem with the fetch operation:", error))
+    },[])
+
+    const createNewChat = ()=>{
+      console.log("Creating New Chat......")
+      fetch("http://127.0.0.1:8000/doc_query/chat/", {
+        method: "GET",
+        headers: {
+          "Authorization" : "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3QyQGdtYWlsLmNvbSIsImV4cCI6MTcxOTkyMjQ5M30.bl6vShNqutBa2bQG9QmN895iiQLN5QgJFB7Z2XaLRFM",
+          "Content-Type" : "application/json"
+        }
+      },
+      )
+        .then((response) => {
+          if (!response.ok) {
+            console.log("error");
+            throw new Error('Network response was not ok');
+          }
+          return response.text();
+        })
+        .then((data) => console.log(data))
+        .catch((error) => console.error('There was a problem with the fetch operation:', error));
+    };
+
+
+    const uploadFiles = ()=>{
+      console.log("Uploading Files")
     }
+
+
     const handleFileChange =(event)=>{
-        const files = Array.from(event.target.files)
-        setSelectedFiles(files)
+      const files = Array.from(event.target.files)
+      setSelectedFiles(files)
     }
   return (
     <MDBContainer fluid className="py-5" style={{ backgroundColor: "#CDC4F9" }}>
@@ -30,32 +76,37 @@ export default function Chatroom() {
           <MDBCard id="chat3" style={{ borderRadius: "15px" }}>
             <MDBCardBody>
               <MDBRow>
+                {/* CHAT HISTORY SECTION */}
                 <MDBCol md="6" lg="5" xl="4" className="mb-4 mb-md-0">
                   <div className="p-3">
-                    <h3>Chat History</h3>
+                    <div style={{display: "flex" , justifyContent: "space-evenly"}}>
+                      <h3>Chat History</h3>
+                      <button style={{border: "none", borderRadius: "5px", background: "blue", width : "125px" , color: "white"}}
+                      onMouseOver={(e)=>e.target.style.background = "#0f0352"} onMouseOut={(e)=> e.target.style.background="blue"} onClick={createNewChat}>New Chat</button>
+                    </div>
                     <Scrollbars
                       style={{ position: "relative", height: "400px" }}
                     >
                       <MDBTypography listUnStyled className="mb-0">
-                        <li className="p-2 border-bottom">
+                        {chatHistory.length > 0 &&
+                        chatHistory.map((chat,index)=>{
+                          return <li key= {index} className="p-2 border-bottom">
                           <a
                             href="#!"
                             className="d-flex justify-content-between"
                           >
                             <div className="d-flex flex-row">
                               <div className="pt-1">
-                                <p className="fw-bold mb-0">Chat Title</p>
-                                <p className="small text-muted">
-                                  Hello, Are you there?
-                                </p>
+                                <p className="fw-bold mb-0">{chat.title}</p>
                               </div>
                             </div>
                             <div className="pt-1">
-                              <p className="small text-muted mb-1">Creation TimeStamp</p>   
+                              <p className="small text-muted mb-1">{chat.creation_timestamp}</p>   
                             </div>
                           </a>
                         </li>
-                        
+                        })
+                        }
                       </MDBTypography>
                     </Scrollbars>
                   </div>
@@ -79,7 +130,7 @@ export default function Chatroom() {
                                 )}
                         </Scrollbars>
                         <div className="justify-content-start align-items-center" style={{color:"green"}}>   
-                        <form onSubmit={handleSubmit}>
+                        <form onSubmit={uploadFiles}>
                             <div style={{display:"flex"}}>
                                 <MDBInput
                                 onChange={handleFileChange}
@@ -89,7 +140,7 @@ export default function Chatroom() {
                                 multiple
                                 >
                                 </MDBInput>
-                                <button type="submit" style={{borderRadius:"5px",background : "blue" , color: "white", border:"none", width: "150px"}}>Upload</button>
+                                <button type="submit" style={{borderRadius:"5px",background : "blue" , color: "white", border:"none", width: "125px"}} onMouseOver={(e)=>e.target.style.background = "#0f0352"} onMouseOut={(e)=> e.target.style.background="blue"}>Upload</button>
                             </div>
                         </form>
                         </div>

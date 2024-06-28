@@ -16,9 +16,9 @@ import Scrollbars from "react-custom-scrollbars-2"
 export default function Chatroom() {
     const [selectedFiles,setSelectedFiles] = useState([])
     const [chatHistory, setChatHistory] = useState([])
+    const [chatMessages,setChatMessages] = useState([])
 
-    useEffect(()=>{
-      console.log("Fetching User Chats...")
+    const fetchUserChats= ()=> {
       fetch("http://127.0.0.1:8000/doc_query/chat/",{
         method : "GET",
         headers: {
@@ -36,28 +36,47 @@ export default function Chatroom() {
         console.log(data)
         setChatHistory(data)})
       .catch((error) =>console.error("There was a problem with the fetch operation:", error))
+    }
+    useEffect(()=>{
+      console.log("Fetching User Chats...")
+      fetchUserChats()
     },[])
 
     const createNewChat = ()=>{
       console.log("Creating New Chat......")
-      fetch("http://127.0.0.1:8000/doc_query/chat/", {
-        method: "GET",
-        headers: {
-          "Authorization" : "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3QyQGdtYWlsLmNvbSIsImV4cCI6MTcxOTkyMjQ5M30.bl6vShNqutBa2bQG9QmN895iiQLN5QgJFB7Z2XaLRFM",
-          "Content-Type" : "application/json"
-        }
-      },
-      )
-        .then((response) => {
-          if (!response.ok) {
-            console.log("error");
-            throw new Error('Network response was not ok');
+      const chat_title = window.prompt("Enter Chat Title:","MyChat");
+      if (chat_title!== null && chat_title.length>0 ){
+        fetch("http://127.0.0.1:8000/doc_query/chat/",{
+          method: "POST",
+          headers: {
+            "Authorization" : "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3QyQGdtYWlsLmNvbSIsImV4cCI6MTcxOTkyMjQ5M30.bl6vShNqutBa2bQG9QmN895iiQLN5QgJFB7Z2XaLRFM",
+            "Content-Type" : "application/json"
+          },
+          body:JSON.stringify({
+            title : `${chat_title}`,
+            owner_id : '667d57bdd13419882b162742'
+          })
+        }).then((response)=>{
+          if(!response.ok){
+            console.log("error")
+            throw new Error("Server response was not ok")
           }
-          return response.text();
+          return response.json()
         })
-        .then((data) => console.log(data))
+        .then((data)=>{
+          console.log(data)
+          console.log("fethcing here")
+          fetchUserChats()
+          console.log(chatHistory[0].id)
+          console.log(chatHistory[0].title)
+          fetchChatMessages(chatHistory[0].id)
+        })
         .catch((error) => console.error('There was a problem with the fetch operation:', error));
-    };
+  }
+  else{
+    console.log("In else doing nothing")
+  }
+     };
 
 
     const uploadFiles = ()=>{
@@ -69,6 +88,45 @@ export default function Chatroom() {
       const files = Array.from(event.target.files)
       setSelectedFiles(files)
     }
+
+    const fetchChatMessages = (chatid) =>{
+      console.log("Fetching Chat Messages....", chatid)
+      fetch(`http://127.0.0.1:8000/doc_query/chat/${chatid}/messages`,{
+        method:"GET",
+        headers: {
+          "Authorization" : "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3QyQGdtYWlsLmNvbSIsImV4cCI6MTcxOTkyMjQ5M30.bl6vShNqutBa2bQG9QmN895iiQLN5QgJFB7Z2XaLRFM",
+          "Content-Type" : "application/json"
+        }
+      }
+      )
+      .then((response)=>{
+        if(!response.ok){
+          console.log("error")
+          throw new Error("Server Response was not ok")
+        }
+        return response.json()
+      })
+      .then((data)=>{
+        console.log(data)
+        setChatMessages(data)
+      })
+      .catch((error)=> console.error('There was a problem with the fetch operation:', error))
+    }
+
+    const formatDate = (utcdate) => {
+      const new_date = new Date(utcdate + 'Z')
+      const options = {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      };
+      return new_date.toLocaleString('en-US', options)
+    };
+
   return (
     <MDBContainer fluid className="py-5" style={{ backgroundColor: "#CDC4F9" }}>
       <MDBRow>
@@ -89,8 +147,8 @@ export default function Chatroom() {
                     >
                       <MDBTypography listUnStyled className="mb-0">
                         {chatHistory.length > 0 &&
-                        chatHistory.map((chat,index)=>{
-                          return <li key= {index} className="p-2 border-bottom">
+                        chatHistory.map((chat)=>{
+                          return <li key= {chat.id} className="p-2 border-bottom" onClick={()=>fetchChatMessages(chat.id)}>
                           <a
                             href="#!"
                             className="d-flex justify-content-between"
@@ -101,7 +159,7 @@ export default function Chatroom() {
                               </div>
                             </div>
                             <div className="pt-1">
-                              <p className="small text-muted mb-1">{chat.creation_timestamp}</p>   
+                              <p className="small text-muted mb-1">{formatDate(chat.creation_timestamp)}</p>   
                             </div>
                           </a>
                         </li>
@@ -150,159 +208,53 @@ export default function Chatroom() {
                     style={{ position: "relative", height: "400px" }}
                     className="pt-3 pe-3"
                   >
-                    <div className="d-flex flex-row justify-content-start">
-                      <div>
-                        <p
-                          className="small p-2 ms-3 mb-1 rounded-3"
-                          style={{ backgroundColor: "#f5f6f7" }}
-                        >
-                          Lorem ipsum dolor sit amet, consectetur adipiscing
-                          elit, sed do eiusmod tempor incididunt ut labore et
-                          dolore magna aliqua.
-                        </p>
-                        <p className="small ms-3 mb-3 rounded-3 text-muted float-end">
-                          12:00 PM | Aug 13
-                        </p>
+                    {/* DISPLAY CHAT MESSAGES */}
+                    {chatMessages.length === 0 && (
+                      <div className="d-flex justify-content-center align-items-center" style={{height:"100%"}}>
+                        <h4 className="large rounded-3 text-muted" style={{background: "lightblue", width:"250px", paddingLeft: "15px"}}>No messages so far!</h4>
                       </div>
-                    </div>
-
-                    <div className="d-flex flex-row justify-content-end">
-                      <div>
-                        <p className="small p-2 me-3 mb-1 text-white rounded-3 bg-primary">
-                          Ut enim ad minim veniam, quis nostrud exercitation
-                          ullamco laboris nisi ut aliquip ex ea commodo
-                          consequat.
-                        </p>
-                        <p className="small me-3 mb-3 rounded-3 text-muted">
-                          12:00 PM | Aug 13
-                        </p>
-                      </div>
-                      <img
-                        src={botImage}
-                        alt="avatar 1"
-                        style={{ width: "45px", height: "100%" }}
-                      />
-                    </div>
-
-                    <div className="d-flex flex-row justify-content-start">
-                      <img
+                    )}
+                    {chatMessages.length>0 && (
+                      chatMessages.map((msg)=>{
+                        if (msg.type === "MessageType.USER"){
+                          return <div key={msg.id} className="d-flex flex-row justify-content-start">
+                                                  <img
                         src="https://mdbcdn.b-cdn.net/img/Photos/new-templates/bootstrap-chat/ava6-bg.webp"
                         alt="avatar 1"
                         style={{ width: "45px", height: "100%" }}
                       />
-                      <div>
-                        <p
-                          className="small p-2 ms-3 mb-1 rounded-3"
-                          style={{ backgroundColor: "#f5f6f7" }}
-                        >
-                          Duis aute irure dolor in reprehenderit in voluptate
-                          velit esse cillum dolore eu fugiat nulla pariatur.
-                        </p>
-                        <p className="small ms-3 mb-3 rounded-3 text-muted float-end">
-                          12:00 PM | Aug 13
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="d-flex flex-row justify-content-end">
-                      <div>
-                        <p className="small p-2 me-3 mb-1 text-white rounded-3 bg-primary">
-                          Excepteur sint occaecat cupidatat non proident, sunt
-                          in culpa qui officia deserunt mollit anim id est
-                          laborum.
-                        </p>
-                        <p className="small me-3 mb-3 rounded-3 text-muted">
-                          12:00 PM | Aug 13
-                        </p>
-                      </div>
-                      <img
-                        src="https://mdbcdn.b-cdn.net/img/Photos/new-templates/bootstrap-chat/ava1-bg.webp"
-                        alt="avatar 1"
-                        style={{ width: "45px", height: "100%" }}
-                      />
-                    </div>
-
-                    <div className="d-flex flex-row justify-content-start">
-                      <img
-                        src="https://mdbcdn.b-cdn.net/img/Photos/new-templates/bootstrap-chat/ava6-bg.webp"
-                        alt="avatar 1"
-                        style={{ width: "45px", height: "100%" }}
-                      />
-                      <div>
-                        <p
-                          className="small p-2 ms-3 mb-1 rounded-3"
-                          style={{ backgroundColor: "#f5f6f7" }}
-                        >
-                          Sed ut perspiciatis unde omnis iste natus error sit
-                          voluptatem accusantium doloremque laudantium, totam
-                          rem aperiam, eaque ipsa quae ab illo inventore
-                          veritatis et quasi architecto beatae vitae dicta sunt
-                          explicabo.
-                        </p>
-                        <p className="small ms-3 mb-3 rounded-3 text-muted float-end">
-                          12:00 PM | Aug 13
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="d-flex flex-row justify-content-end">
-                      <div>
-                        <p className="small p-2 me-3 mb-1 text-white rounded-3 bg-primary">
-                          Nemo enim ipsam voluptatem quia voluptas sit
-                          aspernatur aut odit aut fugit, sed quia consequuntur
-                          magni dolores eos qui ratione voluptatem sequi
-                          nesciunt.
-                        </p>
-                        <p className="small me-3 mb-3 rounded-3 text-muted">
-                          12:00 PM | Aug 13
-                        </p>
-                      </div>
-                      <img
-                        src="https://mdbcdn.b-cdn.net/img/Photos/new-templates/bootstrap-chat/ava1-bg.webp"
-                        alt="avatar 1"
-                        style={{ width: "45px", height: "100%" }}
-                      />
-                    </div>
-
-                    <div className="d-flex flex-row justify-content-start">
-                      <img
-                        src="https://mdbcdn.b-cdn.net/img/Photos/new-templates/bootstrap-chat/ava6-bg.webp"
-                        alt="avatar 1"
-                        style={{ width: "45px", height: "100%" }}
-                      />
-                      <div>
-                        <p
-                          className="small p-2 ms-3 mb-1 rounded-3"
-                          style={{ backgroundColor: "#f5f6f7" }}
-                        >
-                          Neque porro quisquam est, qui dolorem ipsum quia dolor
-                          sit amet, consectetur, adipisci velit, sed quia non
-                          numquam eius modi tempora incidunt ut labore et dolore
-                          magnam aliquam quaerat voluptatem.
-                        </p>
-                        <p className="small ms-3 mb-3 rounded-3 text-muted float-end">
-                          12:00 PM | Aug 13
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="d-flex flex-row justify-content-end">
-                      <div>
-                        <p className="small p-2 me-3 mb-1 text-white rounded-3 bg-primary">
-                          Ut enim ad minima veniam, quis nostrum exercitationem
-                          ullam corporis suscipit laboriosam, nisi ut aliquid ex
-                          ea commodi consequatur?
-                        </p>
-                        <p className="small me-3 mb-3 rounded-3 text-muted">
-                          12:00 PM | Aug 13
-                        </p>
-                      </div>
-                      <img
-                        src="https://mdbcdn.b-cdn.net/img/Photos/new-templates/bootstrap-chat/ava1-bg.webp"
-                        alt="avatar 1"
-                        style={{ width: "45px", height: "100%" }}
-                      />
-                    </div>
+                          <div>
+                            <p
+                              className="small p-2 ms-3 mb-1 rounded-3"
+                              style={{ backgroundColor: "#f5f6f7" }}
+                            >
+                              {msg.msg_txt}
+                            </p>
+                            <p className="small ms-3 mb-3 rounded-3 text-muted float-end">
+                              {formatDate(msg.creation_timestamp).split(",")[2]}
+                            </p>
+                          </div>
+                        </div>
+                        }
+                        else{
+                          return <div key={msg.id} className="d-flex flex-row justify-content-end">
+                          <div>
+                            <p className="small p-2 me-3 mb-1 text-white rounded-3 bg-primary">
+                              {msg.msg_txt}
+                            </p>
+                            <p className="small me-3 mb-3 rounded-3 text-muted">
+                              {formatDate(msg.creation_timestamp).split(",")[2]}
+                            </p>
+                          </div>
+                          <img
+                            src={botImage}
+                            alt="BOT"
+                            style={{ width: "45px", height: "100%" }}
+                          />
+                        </div>
+                        }
+                      })
+                    )}
                   </Scrollbars>
                   <div className="text-muted d-flex justify-content-start align-items-center pe-3 pt-3 mt-2">
                     <img

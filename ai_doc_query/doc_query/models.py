@@ -19,7 +19,7 @@ class User(Document):
 
 class Chat(Document):
     title = StringField(max_length=100, unique = True, required = True)
-    creation_timestamp = DateTimeField(default=datetime.datetime.now())
+    creation_timestamp = DateTimeField(default= lambda: datetime.datetime.now(datetime.timezone.utc))
     owner = ReferenceField(User , reverse_delete_rule=CASCADE)
 
     def __str__(self):
@@ -29,7 +29,7 @@ class Chat(Document):
 
 class Message(Document):
     msg_txt = StringField(min_length=1)
-    creation_timestamp = DateTimeField(default = datetime.datetime.now())
+    creation_timestamp = DateTimeField(default = lambda: datetime.datetime.now(datetime.timezone.utc))
     chat = ReferenceField(Chat, reverse_delete_rule=CASCADE)
     type = EnumField(MessageType , choices = [MessageType.USER , MessageType.BOT])
 

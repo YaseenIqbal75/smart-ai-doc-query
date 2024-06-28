@@ -154,6 +154,8 @@ class ChatApis(View):
                         "owner" : chat.owner.email
                         }
                         chat_list.append(chat_data)
+                chat_list.reverse()
+                print(chat_list)
                 return JsonResponse(chat_list,safe=False,status = 200)
             except Exception as e:
                 return JsonResponse({"message" : str(e)}, status = 500)
@@ -171,9 +173,9 @@ class ChatApis(View):
 
             if response.get('status') == False:
                 return JsonResponse({"message" : response.get('msg')}, status = 401)
-
+            print("Authorized")
             data = json.loads(request.body)
-
+            print("Authorized")
             title = data.get("title")
             owner_id = data.get("owner_id")
 
@@ -182,6 +184,7 @@ class ChatApis(View):
 
             new_chat = Chat(title = title , owner = owner_id)
             new_chat.save()
+            print("Time now is : " , datetime.datetime.now(datetime.timezone.utc))
 
             return JsonResponse({"message" : "Chat created successfully"},status = 201)
 
@@ -249,7 +252,7 @@ class ChatApis(View):
 
 @method_decorator(csrf_exempt, name="dispatch")
 class MessageApis(View):
-    def get(self, request, id=None):
+    def get(self, request, id):
         headers = request.headers
         auth_header = headers.get("Authorization")
         if not auth_header or not auth_header.startswith("Bearer "):
@@ -264,34 +267,26 @@ class MessageApis(View):
 
         if id:
             try:
-                req_msg = Message.objects.get(pk=id)
-                msg = {
-                    "id" : str(req_msg.id),
-                    "chat": req_msg.chat.title,
-                    "type": str(req_msg.type)
-                }
+                print(id)
+                chat_messages =[]
+                for msg in Message.objects:
+                    if str(msg.chat.id) == id:
+                        curr_msg = {
+                            "id" : str(msg.id),
+                            "chat": msg.chat.title,
+                            "type": str(msg.type),
+                            "msg_txt": str(msg.msg_txt),
+                            "creation_timestamp": msg.creation_timestamp
+                        }
+                        chat_messages.append(curr_msg)
 
-                return JsonResponse(msg ,status = 200)
+                return JsonResponse(chat_messages,safe=False ,status = 200)
             except DoesNotExist:
-                return JsonResponse({"message" : "Message does not exist"}, status = 404)
+                return JsonResponse({"message" : "No message found for the Chat"}, status = 404)
             except Exception as e:
                 return JsonResponse({"message" : str(e)}, status= 500)
         else:
-            try:
-                msg_list = []
-
-                for msg in Message.objects:
-                    data = {
-                    "id" : str(msg.id),
-                    "msg_txt" : msg.msg_txt,
-                    "chat": msg.chat.title,
-                    "type":str(msg.type)
-                }
-                    msg_list.append(data)
-
-                return JsonResponse(msg_list, safe=False, status=200)
-            except Exception as e:
-                return  JsonResponse({"message": str(e)}, status=500)
+            return JsonResponse({"message" : "Chat id not found in query param"},status =400)
 
     def post(self, request):
         try:

@@ -166,6 +166,31 @@ export default function Chatroom() {
       .catch((error)=> console.error('There was a problem with the fetch operation:', error))
     }
 
+    const handleDeleteChat =(chatid)=>{
+      console.log("Deleting chat", chatid)
+      if(window.confirm("Are you sure to delete this chat")){
+
+        fetch(`http://127.0.0.1:8000/doc_query/chat/${chatid}`, {
+          method: "DELETE",
+          headers: {
+            "Authorization" : "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3QyQGdtYWlsLmNvbSIsImV4cCI6MTcxOTkyMjQ5M30.bl6vShNqutBa2bQG9QmN895iiQLN5QgJFB7Z2XaLRFM",
+          "Content-Type" : "application/json"
+        }
+      })
+      .then((response)=>{
+        if (!response.ok){
+          console.log("error")
+          throw new Error("Server response was not ok")
+        }
+        return response.json()
+      })
+      .then((data)=>{
+        console.log(data)
+        fetchUserChats()
+      })
+      .catch((error) => console.error("There was a problem with the fetch operation:", error));
+    }
+  }
     const formatDate = (utcdate) => {
       const new_date = new Date(utcdate + 'Z')
       const options = {
@@ -201,20 +226,25 @@ export default function Chatroom() {
                       <MDBTypography listUnStyled className="mb-0">
                         {chatHistory.length > 0 &&
                         chatHistory.map((chat)=>{
-                          return <li key= {chat.id} className="p-2 border-bottom" onClick={()=>fetchChatMessages(chat.id)}>
-                          <a
-                            href="#!"
-                            className="d-flex justify-content-between"
-                          >
+                          return <li key={chat.id} className="p-2 border-bottom d-flex justify-content-between align-items-center">
+                          <a href="#!" className="d-flex justify-content-between" onClick={() => fetchChatMessages(chat.id)} style={{flex: 1}}>
                             <div className="d-flex flex-row">
                               <div className="pt-1">
                                 <p className="fw-bold mb-0">{chat.title}</p>
                               </div>
                             </div>
                             <div className="pt-1">
-                              <p className="small text-muted mb-1">{formatDate(chat.creation_timestamp)}</p>   
+                              <p className="small text-muted mb-1">{formatDate(chat.creation_timestamp)}</p>
                             </div>
                           </a>
+                          <button
+                            className="btn btn-danger btn-sm"
+                            onClick={(e) => {
+                              e.stopPropagation(); // Prevent the click event from bubbling up to the parent elements
+                              handleDeleteChat(chat.id);
+                            }}>
+                            Delete
+                          </button>
                         </li>
                         })
                         }

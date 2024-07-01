@@ -249,7 +249,8 @@ class ChatApis(View):
                 return JsonResponse({"message": "Chat does not exist"}, status=404)
 
             req_chat.delete()
-            return JsonResponse({"message" : "Chat deleted succesfully"}, status=204)
+            print("Chat deleted")
+            return JsonResponse({"message" : "Chat deleted succesfully"}, status=200)
         except Exception as e:
             return JsonResponse({"message" : str(e)},status=500)
 

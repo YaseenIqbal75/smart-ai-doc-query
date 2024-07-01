@@ -17,6 +17,7 @@ export default function Chatroom() {
     const [selectedFiles,setSelectedFiles] = useState([])
     const [chatHistory, setChatHistory] = useState([])
     const [chatMessages,setChatMessages] = useState([])
+    const [chatId,setChatId] = useState("")
 
     const fetchUserChats= ()=> {
       fetch("http://127.0.0.1:8000/doc_query/chat/",{
@@ -33,14 +34,31 @@ export default function Chatroom() {
         return response.json()
       })
       .then((data)=>{
-        console.log(data)
-        setChatHistory(data)})
+        console.log("Chat History is :",data)
+        setChatHistory(data)
+      })
       .catch((error) =>console.error("There was a problem with the fetch operation:", error))
     }
+
+
     useEffect(()=>{
       console.log("Fetching User Chats...")
       fetchUserChats()
     },[])
+
+    useEffect(()=>{
+      if (chatHistory.length)
+      {
+        fetchChatMessages(chatHistory[0].id)
+        setChatId(chatHistory[0].id)
+      }
+    },[chatHistory])
+
+    useEffect(()=>{
+      if (chatMessages.length){
+
+      }
+    })
 
     const createNewChat = ()=>{
       console.log("Creating New Chat......")
@@ -64,12 +82,9 @@ export default function Chatroom() {
           return response.json()
         })
         .then((data)=>{
-          console.log(data)
-          console.log("fethcing here")
+          console.log("New chat",data)
+          // we can also append the chathistory array
           fetchUserChats()
-          console.log(chatHistory[0].id)
-          console.log(chatHistory[0].title)
-          fetchChatMessages(chatHistory[0].id)
         })
         .catch((error) => console.error('There was a problem with the fetch operation:', error));
   }
@@ -87,6 +102,43 @@ export default function Chatroom() {
     const handleFileChange =(event)=>{
       const files = Array.from(event.target.files)
       setSelectedFiles(files)
+    }
+
+    const handleEnterKey = (event)=>{
+      if (event.key ==="Enter"){
+        createUserNewMessage(event.target.value,chatId)
+        event.target.value = ""
+      }
+    }
+
+    const createUserNewMessage = (content)=>{ // call the bot response funciton here
+      console.log("Creating new message with content..." ,content,chatId)
+        fetch("http://127.0.0.1:8000/doc_query/message/",{
+          method: "POST",
+          headers: {
+            "Authorization" : "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3QyQGdtYWlsLmNvbSIsImV4cCI6MTcxOTkyMjQ5M30.bl6vShNqutBa2bQG9QmN895iiQLN5QgJFB7Z2XaLRFM",
+            "Content-Type" : "application/json"
+          },
+          body: JSON.stringify({
+            "msg_txt" : content,
+            "type" : "user",
+            "chat_id": chatId,
+          })
+
+        })
+        .then((response)=>{
+          if (!response.ok){
+            console.log("error")
+            throw new Error("Server response was not ok")
+          }
+          return response.json()
+        })
+        .then((data)=>{
+          console.log(data)
+          fetchChatMessages(chatId)
+        })
+        .catch((error)=> console.error('There was a problem with the fetch operation:', error))
+
     }
 
     const fetchChatMessages = (chatid) =>{
@@ -109,6 +161,7 @@ export default function Chatroom() {
       .then((data)=>{
         console.log(data)
         setChatMessages(data)
+        setChatId(chatid)
       })
       .catch((error)=> console.error('There was a problem with the fetch operation:', error))
     }
@@ -265,8 +318,10 @@ export default function Chatroom() {
                     <input
                       type="text"
                       className="form-control form-control-lg"
-                      id="exampleFormControlInput2"
+                      id="messageInput"
                       placeholder="Type message"
+                      // onChange={(e)=>setMessage(e.target.value)}
+                      onKeyDown={handleEnterKey}
                     />
                     <a className="ms-1 text-muted" href="#!">
                       <MDBIcon fas icon="paperclip" />

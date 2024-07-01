@@ -185,8 +185,12 @@ class ChatApis(View):
             new_chat = Chat(title = title , owner = owner_id)
             new_chat.save()
             print("Time now is : " , datetime.datetime.now(datetime.timezone.utc))
+            print(new_chat.id, new_chat.title, new_chat.owner,new_chat.creation_timestamp)
 
-            return JsonResponse({"message" : "Chat created successfully"},status = 201)
+            return JsonResponse({"id" : str(new_chat.id),
+                                 "creation_timestamp" : new_chat.creation_timestamp,
+                                 "owner" : str(new_chat.owner),
+                                 "title" : new_chat.title},status = 201)
 
         except json.JSONDecodeError:
             return JsonResponse({"message": "Invalid JSON"}, status=400)
@@ -320,7 +324,9 @@ class MessageApis(View):
 
             new_msg = Message(msg_txt=msg_txt , type=type , chat=chat_id)
             new_msg.save()
-            return JsonResponse({"message" : "Message created successfully"},status = 201)
+            return JsonResponse({"id" : str(new_msg.id),
+                                 "msg_txt" : new_msg.msg_txt,
+                                 "creation_timestamp" : new_msg.creation_timestamp},status = 201)
         except json.JSONDecodeError:
             return JsonResponse({"message": "Invalid JSON"}, status=400)
         except Exception as e:

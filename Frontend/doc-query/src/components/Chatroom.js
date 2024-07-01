@@ -19,6 +19,45 @@ export default function Chatroom() {
     const [chatMessages,setChatMessages] = useState([])
     const [chatId,setChatId] = useState("")
 
+    useEffect(()=>{
+      console.log("Fetching User Chats...")
+      fetchUserChats()
+    },[])
+
+    useEffect(()=>{
+      if (chatHistory.length)
+      {
+        fetchChatMessages(chatHistory[0].id)
+        setChatId(chatHistory[0].id)
+      }
+    },[chatHistory])
+
+    useEffect(()=>{
+      if(chatHistory.length)
+      fetchChatFiles(chatHistory[0].id)
+    },[chatHistory])
+
+    const fetchChatFiles = (chatid) =>{
+      console.log("Fetching chat files")
+      fetch(`http://127.0.0.1:8000/doc_query/chat/${chatid}/files`,{
+        method: "GET",
+        headers:{
+          "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3QyQGdtYWlsLmNvbSIsImV4cCI6MTcxOTkyMjQ5M30.bl6vShNqutBa2bQG9QmN895iiQLN5QgJFB7Z2XaLRFM",
+        }
+      })
+      .then((response)=>{
+        if (!response.ok){
+          console.log("error")
+          throw new Error("Server response was not ok")
+        }
+        return response.json()
+      })
+      .then((data)=>{
+        console.log(data)
+        setSelectedFiles(data)
+      })
+      .catch((error) =>console.error("There was a problem with the fetch operation:", error))
+    }
     const fetchUserChats= ()=> {
       fetch("http://127.0.0.1:8000/doc_query/chat/",{
         method : "GET",
@@ -39,26 +78,6 @@ export default function Chatroom() {
       })
       .catch((error) =>console.error("There was a problem with the fetch operation:", error))
     }
-
-
-    useEffect(()=>{
-      console.log("Fetching User Chats...")
-      fetchUserChats()
-    },[])
-
-    useEffect(()=>{
-      if (chatHistory.length)
-      {
-        fetchChatMessages(chatHistory[0].id)
-        setChatId(chatHistory[0].id)
-      }
-    },[chatHistory])
-
-    useEffect(()=>{
-      if (chatMessages.length){
-
-      }
-    })
 
     const createNewChat = ()=>{
       console.log("Creating New Chat......")
@@ -85,6 +104,7 @@ export default function Chatroom() {
           console.log("New chat",data)
           // we can also append the chathistory array
           fetchUserChats()
+          setSelectedFiles([])
         })
         .catch((error) => console.error('There was a problem with the fetch operation:', error));
   }
@@ -94,8 +114,33 @@ export default function Chatroom() {
      };
 
 
-    const uploadFiles = ()=>{
-      console.log("Uploading Files")
+    const uploadFiles = (event)=>{
+      console.log("Uploading Files..")
+      const formData =  new FormData()
+      for(let i=0;i<selectedFiles.length;i++){
+        formData.append('files[]',selectedFiles[i])
+      }
+      formData.append("chat_id", chatId)
+
+      fetch("http://127.0.0.1:8000/doc_query/file/", {
+        method:"POST",
+        headers: {
+          "Authorization" : "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3QyQGdtYWlsLmNvbSIsImV4cCI6MTcxOTkyMjQ5M30.bl6vShNqutBa2bQG9QmN895iiQLN5QgJFB7Z2XaLRFM",
+        },
+        body: formData
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Network response was not ok.');
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log('Success:', data);
+      })
+      .catch(error => {
+        console.error('There was a problem with the fetch operation:', error);
+      });
     }
 
 
@@ -105,7 +150,7 @@ export default function Chatroom() {
     }
 
     const handleEnterKey = (event)=>{
-      if (event.key ==="Enter"){
+      if (event.key ==="Enter" && event.target.value.length){
         createUserNewMessage(event.target.value,chatId)
         event.target.value = ""
       }
@@ -162,6 +207,7 @@ export default function Chatroom() {
         console.log(data)
         setChatMessages(data)
         setChatId(chatid)
+        fetchChatFiles(chatid)
       })
       .catch((error)=> console.error('There was a problem with the fetch operation:', error))
     }

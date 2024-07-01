@@ -5,6 +5,9 @@ from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from .jwt_utils import *
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
+import os
 
 
 
@@ -405,13 +408,17 @@ class FileApis(View):
 
         if id:
             try:
-                req_file = File.objects.get(pk=id)
-                file_obj = {
-                    "id": str(req_file.id),
-                    "name": req_file.name,
-                    "chat": req_file.chat.title
-                }
-                return JsonResponse(file_obj,status=200)
+                file_list = []
+                for file in File.objects:
+                    if str(file.chat.id) == id:
+                        print("inside if loop")
+                        file_obj = {
+                        "id": str(file.id),
+                        "name": file.name,
+                        "chat": file.chat.title
+                        }
+                        file_list.append(file_obj)
+                return JsonResponse(file_list,safe=False,status=200)
             except DoesNotExist as d:
                 return JsonResponse({"message": "File does not exist"} , status=404)
             except Exception as e:
@@ -442,33 +449,31 @@ class FileApis(View):
             token = auth_header.split(" ")[1]
             print(token)
             response = verify_jwt(token)
-
+            print('here!')
             if response.get('status') == False:
-                return JsonResponse({"message" : response.get('msg')}, status = 401)
+                return JsonResponse({"message": response.get('msg')}, status=401)
+            chat_id = request.POST.get("chat_id") # should be passed in the form data
+            print(chat_id)
+            if not chat_id:
+                return JsonResponse({"message": "Chat ID is required"}, status=400)
 
-            data = json.loads(request.body)
+            if 'files[]' not in request.FILES:
+                return JsonResponse({"message": "No file uploaded"}, status=400)
+            uploaded_files = request.FILES.getlist('files[]')
+            for uploaded_file in uploaded_files:
+                file_name = uploaded_file.name
+                file_path = default_storage.save(os.path.join('uploads', file_name), ContentFile(uploaded_file.read()))
 
-            path = data.get("path")
-            chat_id = data.get("chat_id") # would be static currently
+                # Assuming your File model has a FileField to store the uploaded file
+                new_file = File(name=file_name, chat=chat_id)
+                with open(file_path, "rb") as f:
+                    new_file.file.put(f, content_type = "application/pdf")
+                new_file.save()
 
-            if not path or not chat_id:
-                return JsonResponse({"message" : "File path and chat id required"}, status= 400)
+            return JsonResponse({"message": "Files uploaded successfully"}, status=201)
 
-            file_name = path.split("/")[-1]
-            file_name = file_name.split(".")[0]
-            print(file_name)
-
-            new_file = File(name= file_name, chat = chat_id)
-            with open(path, "rb") as f:
-                new_file.file.put(f, content_type = "application/pdf")
-            new_file.save()
-
-            return JsonResponse({"message":"File created successfuly"}, status = 201)
-
-        except json.JSONDecodeError:
-            return JsonResponse({"message": "Invalid JSON"}, status=400)
         except Exception as e:
-            return JsonResponse({"message": str(e)}, status = 500)
+            return JsonResponse({"message": str(e)}, status=500)
 
     def delete(self,request,id):
         try:
@@ -492,12 +497,3 @@ class FileApis(View):
             return JsonResponse({"message": "File does not exist"}, status = 404)
         except Exception as e:
             return JsonResponse({"message": str(e)}, status = 500)
-
-
-@csrf_exempt
-def hello_world(request):
-    print(request.headers)
-    if(request.method == "GET"):
-        return HttpResponse("Got the requesst")
-    else:
-        return HttpResponse(status=404)

@@ -31,8 +31,3 @@ def verify_jwt(token):
         print(e)
         return {"status" : False,
                 "msg" : str(e)}
-
-
-# token = generate_jwt("arslanwaqar421@gmail.com")
-# time.sleep(2)
-# verify_jwt(token)

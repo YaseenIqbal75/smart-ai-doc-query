@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import botImage from "../assets/images/bit_image.jpeg" 
+import { useNavigate } from "react-router-dom";
 import {
   MDBContainer,
   MDBRow,   
@@ -13,16 +14,33 @@ import {
 import "./Chatroom.css"
 import Scrollbars from "react-custom-scrollbars-2"
 
-export default function Chatroom() {
+function Chatroom() {
     const [selectedFiles,setSelectedFiles] = useState([])
     const [chatHistory, setChatHistory] = useState([])
     const [chatMessages,setChatMessages] = useState([])
     const [chatId,setChatId] = useState("")
+    const [userToken, setUserToken] = useState("");
+    const [userId, setUserId] = useState("");
+    const [userEmail, setUserEmail] = useState("");
+
+
+    useEffect(() => {
+      const token = sessionStorage.getItem('user_token');
+      const id = sessionStorage.getItem('user_id');
+      const email = sessionStorage.getItem('user_email');
+
+      if (token && id && email) {
+        setUserToken(token);
+        setUserId(id);
+        setUserEmail(email);
+      }
+    }, []);
 
     useEffect(()=>{
+      if(userToken)
       console.log("Fetching User Chats...")
       fetchUserChats()
-    },[])
+    },[userToken])
 
     useEffect(()=>{
       if (chatHistory.length)
@@ -39,10 +57,11 @@ export default function Chatroom() {
 
     const fetchChatFiles = (chatid) =>{
       console.log("Fetching chat files")
+
       fetch(`http://127.0.0.1:8000/doc_query/chat/${chatid}/files`,{
         method: "GET",
         headers:{
-          "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3QyQGdtYWlsLmNvbSIsImV4cCI6MTcxOTkyMjQ5M30.bl6vShNqutBa2bQG9QmN895iiQLN5QgJFB7Z2XaLRFM",
+          "Authorization": `Bearer ${userToken}`,
         }
       })
       .then((response)=>{
@@ -58,11 +77,13 @@ export default function Chatroom() {
       })
       .catch((error) =>console.error("There was a problem with the fetch operation:", error))
     }
+
     const fetchUserChats= ()=> {
+      console.log("user token" , userToken)
       fetch("http://127.0.0.1:8000/doc_query/chat/",{
         method : "GET",
         headers: {
-          "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3QyQGdtYWlsLmNvbSIsImV4cCI6MTcxOTkyMjQ5M30.bl6vShNqutBa2bQG9QmN895iiQLN5QgJFB7Z2XaLRFM",
+          "Authorization": `Bearer ${userToken}`,
           "Content-Type" : "application/json"
         }
       })
@@ -86,12 +107,12 @@ export default function Chatroom() {
         fetch("http://127.0.0.1:8000/doc_query/chat/",{
           method: "POST",
           headers: {
-            "Authorization" : "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3QyQGdtYWlsLmNvbSIsImV4cCI6MTcxOTkyMjQ5M30.bl6vShNqutBa2bQG9QmN895iiQLN5QgJFB7Z2XaLRFM",
+            "Authorization": `Bearer ${userToken}`,
             "Content-Type" : "application/json"
           },
           body:JSON.stringify({
             title : `${chat_title}`,
-            owner_id : '667d57bdd13419882b162742'
+            owner_id : `${userId}`
           })
         }).then((response)=>{
           if(!response.ok){
@@ -125,7 +146,7 @@ export default function Chatroom() {
       fetch("http://127.0.0.1:8000/doc_query/file/", {
         method:"POST",
         headers: {
-          "Authorization" : "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3QyQGdtYWlsLmNvbSIsImV4cCI6MTcxOTkyMjQ5M30.bl6vShNqutBa2bQG9QmN895iiQLN5QgJFB7Z2XaLRFM",
+          "Authorization": `Bearer ${userToken}`,
         },
         body: formData
       })
@@ -161,7 +182,7 @@ export default function Chatroom() {
         fetch("http://127.0.0.1:8000/doc_query/message/",{
           method: "POST",
           headers: {
-            "Authorization" : "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3QyQGdtYWlsLmNvbSIsImV4cCI6MTcxOTkyMjQ5M30.bl6vShNqutBa2bQG9QmN895iiQLN5QgJFB7Z2XaLRFM",
+            "Authorization": `Bearer ${userToken}`,
             "Content-Type" : "application/json"
           },
           body: JSON.stringify({
@@ -191,7 +212,7 @@ export default function Chatroom() {
       fetch(`http://127.0.0.1:8000/doc_query/chat/${chatid}/messages`,{
         method:"GET",
         headers: {
-          "Authorization" : "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3QyQGdtYWlsLmNvbSIsImV4cCI6MTcxOTkyMjQ5M30.bl6vShNqutBa2bQG9QmN895iiQLN5QgJFB7Z2XaLRFM",
+          "Authorization": `Bearer ${userToken}`,
           "Content-Type" : "application/json"
         }
       }
@@ -219,8 +240,8 @@ export default function Chatroom() {
         fetch(`http://127.0.0.1:8000/doc_query/chat/${chatid}`, {
           method: "DELETE",
           headers: {
-            "Authorization" : "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3QyQGdtYWlsLmNvbSIsImV4cCI6MTcxOTkyMjQ5M30.bl6vShNqutBa2bQG9QmN895iiQLN5QgJFB7Z2XaLRFM",
-          "Content-Type" : "application/json"
+            "Authorization": `Bearer ${userToken}`,
+            "Content-Type" : "application/json"
         }
       })
       .then((response)=>{
@@ -270,6 +291,11 @@ export default function Chatroom() {
                       style={{ position: "relative", height: "400px" }}
                     >
                       <MDBTypography listUnStyled className="mb-0">
+                      {chatHistory.length === 0 && (
+                      <div className="d-flex justify-content-center align-items-center" style={{height:"100%"}}>
+                        <h4 className="large rounded-3 text-muted" style={{background: "lightblue", width:"250px", paddingLeft: "15px"}}>No Chats so far!</h4>
+                      </div>
+                    )}
                         {chatHistory.length > 0 &&
                         chatHistory.map((chat)=>{
                           return <li key={chat.id} className="p-2 border-bottom d-flex justify-content-between align-items-center">
@@ -418,3 +444,5 @@ export default function Chatroom() {
     </MDBContainer>
   );
 }
+
+export default Chatroom;

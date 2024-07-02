@@ -46,9 +46,9 @@ class UserApis(View):
 
     def post(self,request):
         try:
-            data = json.loads(request.body)
-            email = data.get('email')
-            password = data.get('password')
+
+            email = request.POST.get('email')
+            password = request.POST.get('password')
 
             if not email or not password:
                 return JsonResponse({"message": "Email and Password are required."}, status=400)
@@ -57,13 +57,11 @@ class UserApis(View):
                 return JsonResponse({"message": "User with this email already exists"}, status=400)
 
             token, exp_time = generate_jwt(email)
-            print(token)
-            print(exp_time)
 
             new_user = User(email=email, password=password, auth_token = token)
             new_user.save()
 
-            return JsonResponse({"id": str(new_user.id),"email": email, "password": password}, status=201)
+            return JsonResponse({"id": str(new_user.id),"email": email, "password": password, "auth_token" : token}, status=201)
 
         except json.JSONDecodeError:
             return JsonResponse({"message": "Invalid JSON"}, status=400)
@@ -497,3 +495,26 @@ class FileApis(View):
             return JsonResponse({"message": "File does not exist"}, status = 404)
         except Exception as e:
             return JsonResponse({"message": str(e)}, status = 500)
+
+@method_decorator(csrf_exempt, name="dispatch")
+class Login(View):
+    def post(self,request):
+        try:
+            email = request.POST.get('email')
+            password = request.POST.get('password')
+            user = User.objects(email=email).first()
+            if user:
+                if user.password == password:
+                    print("inside pass")
+                    verified = verify_jwt(str(user.auth_token))
+                    print(verified)
+                    if verified.get('status'):
+                        return JsonResponse({"id": str(user.id),"email": user.email, "password": user.password, "auth_token" : user.auth_token},status=200)
+                    else:
+                        return JsonResponse({"message" : verified.get('msg')},status = 400)
+                else:
+                    return JsonResponse({"message" : "Invalid Password"},status = 400)
+            else:
+                return JsonResponse({"message": "Invalid Email"}, status= 400)
+        except Exception as e:
+            return JsonResponse({"message" : str(e)}, status=500)

@@ -240,7 +240,6 @@ function Chatroom() {
           method: "DELETE",
           headers: {
             "Authorization": `Bearer ${userToken}`,
-            "Content-Type" : "application/json"
         }
       })
       .then((response)=>{
@@ -285,10 +284,10 @@ function Chatroom() {
             <MDBCardBody>
               <MDBRow>
               <div className="d-flex justify-content-center align-items-center">
-                <button type="button" class="btn btn-danger" onClick={handleLogout}>Logout</button>  
+                <button type="button" className="btn btn-danger" onClick={handleLogout}>Logout</button>
               </div>
                 {/* CHAT HISTORY SECTION */}
-                <MDBCol md="6" lg="5" xl="4" className="mb-4 mb-md-0">
+                <MDBCol md="6" lg="5" xl="4" className="mb-4 mb-md-0" style={{borderRight:"2px solid grey"}}>
                   <div className="p-3">
                     <div style={{display: "flex" , justifyContent: "space-evenly"}}>
                       <h3>Chat History</h3>
@@ -366,7 +365,7 @@ function Chatroom() {
                         </form>
                         </div>
                 </MDBCol>
-                <MDBCol md="6" lg="5" xl="4">
+                <MDBCol md="6" lg="5" xl="4" style={{borderLeft:"2px solid grey"}}>
                   <Scrollbars
                     style={{ position: "relative", height: "400px" }}
                     className="pt-3 pe-3"

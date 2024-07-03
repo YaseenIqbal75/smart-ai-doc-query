@@ -21,25 +21,24 @@ function Chatroom() {
     const [chatId,setChatId] = useState("")
     const [userToken, setUserToken] = useState("");
     const [userId, setUserId] = useState("");
-    const [userEmail, setUserEmail] = useState("");
+    const navigate = useNavigate()
 
 
     useEffect(() => {
       const token = sessionStorage.getItem('user_token');
       const id = sessionStorage.getItem('user_id');
-      const email = sessionStorage.getItem('user_email');
 
-      if (token && id && email) {
+      if (token && id) {
         setUserToken(token);
         setUserId(id);
-        setUserEmail(email);
       }
     }, []);
 
     useEffect(()=>{
-      if(userToken)
+      if(userToken){
       console.log("Fetching User Chats...")
       fetchUserChats()
+      }
     },[userToken])
 
     useEffect(()=>{
@@ -258,6 +257,12 @@ function Chatroom() {
       .catch((error) => console.error("There was a problem with the fetch operation:", error));
     }
   }
+
+    const handleLogout = ()=>{
+      sessionStorage.clear()
+      navigate("/")
+    }
+
     const formatDate = (utcdate) => {
       const new_date = new Date(utcdate + 'Z')
       const options = {
@@ -279,6 +284,9 @@ function Chatroom() {
           <MDBCard id="chat3" style={{ borderRadius: "15px" }}>
             <MDBCardBody>
               <MDBRow>
+              <div className="d-flex justify-content-center align-items-center">
+                <button type="button" class="btn btn-danger" onClick={handleLogout}>Logout</button>  
+              </div>
                 {/* CHAT HISTORY SECTION */}
                 <MDBCol md="6" lg="5" xl="4" className="mb-4 mb-md-0">
                   <div className="p-3">
@@ -292,8 +300,8 @@ function Chatroom() {
                     >
                       <MDBTypography listUnStyled className="mb-0">
                       {chatHistory.length === 0 && (
-                      <div className="d-flex justify-content-center align-items-center" style={{height:"100%"}}>
-                        <h4 className="large rounded-3 text-muted" style={{background: "lightblue", width:"250px", paddingLeft: "15px"}}>No Chats so far!</h4>
+                      <div className="d-flex justify-content-center align-items-center" style={{height:"50vh"}}>
+                        <h4 className="large rounded-3 text-muted" style={{background: "lightblue", width:"200px",paddingLeft: "10px"}}>No Chats so far!</h4>
                       </div>
                     )}
                         {chatHistory.length > 0 &&

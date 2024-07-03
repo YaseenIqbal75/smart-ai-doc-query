@@ -45,10 +45,9 @@ export default function Signup() {
       })
       .then((data) => {
         console.log(data);
-        navigate("/chatroom", {state:{user_token:data.auth_token,
-            user_id:data.id,
-            user_email:data.email
-        }});
+        sessionStorage.setItem('user_token', data.auth_token);
+        sessionStorage.setItem('user_id', data.id);
+        navigate("/chatroom")
       })
       .catch((error) => {
         alert(`${error.message}`)

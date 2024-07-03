@@ -36,7 +36,6 @@ export default function Login() {
         console.log(data);
         sessionStorage.setItem('user_token', data.auth_token);
         sessionStorage.setItem('user_id', data.id);
-        sessionStorage.setItem('user_email', data.email);
         navigate("/chatroom");
       })
       .catch((error) => {

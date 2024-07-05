@@ -1,7 +1,15 @@
-# AI DOC QUERY
+# SMART DOC QUERY
 
-An application that allows users to upload pdf files to the server. User can then query the chatbot regarding the pdf files.
+An application that assists user upload multiple files and take assistance from chatbot to get answers of their questions regarding uploaded files.
+
 ## Features
+### Backend
+1. Implemented RESTful apis for Login/Signup
+2. Implemented RESTful apis for CRUD operations on Chats
+3. Implemeted RESTful apis for create,delete,read operations on Files
+5. Implemented RESTful apis for create operation on messages.
+6. Integerated JWT varification for user authentication and authorization
+### Frontend
 1. Login/SignUp
 2. User Authentication (JWT tokens)
 3. Create/Delete Chats.
@@ -9,15 +17,15 @@ An application that allows users to upload pdf files to the server. User can the
 5. Question Chatbot regarding the content of pdf
 
 ## Technologies Used
-1. Django (Backend)
-2. React (Frontend)
+1. Django 4.2.13 (Backend)
+2. React 18.3.1 (Frontend)
 3. MongoDB (Database)
 
 ## Pre-requisits
-1. Django
-2. Node.js
-3. npm
-4. Python 3.x
+1. Django 4.2.13
+2. Node.js 20.15.0
+3. npm 10.7.0
+4. Python 3.8.10
 
 
 ## Installation 

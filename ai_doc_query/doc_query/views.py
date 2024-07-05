@@ -416,17 +416,6 @@ class FileApis(View):
     # delete a file from the database only can be tested on postman
     def delete(self,request,id):
         try:
-            # headers = request.headers
-            # auth_header = headers.get("Authorization")
-            # if not auth_header or not auth_header.startswith("Bearer "):
-            #     return JsonResponse({"message": "Authorization token not supplied or improperly formatted"}, status=401)
-
-            # token = auth_header.split(" ")[1]
-            # print(token)
-            # response = verify_jwt(token)
-
-            # if response.get('status') == False:
-            #     return JsonResponse({"message" : response.get('msg')}, status = 401)
             req_file = File.objects.get(pk=id)
             req_file.file.delete()
             req_file.save()

@@ -8,8 +8,10 @@ from .jwt_utils import *
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 import os
+from .bot_utils import *
+from PyPDF2 import PdfReader
 
-
+knowldgeBase = None
 
 @method_decorator(csrf_exempt, name='dispatch')
 class UserApis(View):
@@ -340,7 +342,7 @@ class MessageApis(View):
 @method_decorator(csrf_exempt, name="dispatch")
 class FileApis(View):
     # get the files uploaded for a specific chat
-    def get(self,request,id=None):
+    def get(self,request,id):
         headers = request.headers
         auth_header = headers.get("Authorization")
         if not auth_header or not auth_header.startswith("Bearer "):
@@ -357,16 +359,17 @@ class FileApis(View):
                 file_list = []
                 for file in File.objects:
                     if str(file.chat.id) == id:
+                        print("inside if")
                         file_obj = {
                         "id": str(file.id),
                         "name": file.name,
                         "chat": file.chat.title
                         }
                         file_list.append(file_obj)
+                print("above return")
                 return JsonResponse(file_list,safe=False,status=200)
-            except DoesNotExist as d:
-                return JsonResponse({"message": "File does not exist"} , status=404)
             except Exception as e:
+                print("Exception : ", e)
                 return JsonResponse({"message" : str(e)}, status = 500)
         else:
             return JsonResponse({"message" : "Chat id not found in query param"}, status = 400)
@@ -391,16 +394,21 @@ class FileApis(View):
 
             if 'files[]' not in request.FILES:
                 return JsonResponse({"message": "No file uploaded"}, status=400)
-
+            text = ""
             uploaded_files = request.FILES.getlist('files[]')
             for uploaded_file in uploaded_files:
                 file_name = uploaded_file.name
                 file_path = default_storage.save(os.path.join('uploads', file_name), ContentFile(uploaded_file.read()))
-
                 new_file = File(name=file_name, chat=chat_id)
                 with open(file_path, "rb") as f:
                     new_file.file.put(f, content_type = "application/pdf")
+                    pdf_file = PdfReader(f)
+                    for page in pdf_file.pages:
+                        text += page.extract_text()
+
                 new_file.save()
+            global knowledgeBase
+            knowledgeBase = process_text(text)
 
             return JsonResponse({"message": "Files uploaded successfully"}, status=201)
 
@@ -410,17 +418,17 @@ class FileApis(View):
     # delete a file from the database only can be tested on postman
     def delete(self,request,id):
         try:
-            headers = request.headers
-            auth_header = headers.get("Authorization")
-            if not auth_header or not auth_header.startswith("Bearer "):
-                return JsonResponse({"message": "Authorization token not supplied or improperly formatted"}, status=401)
+            # headers = request.headers
+            # auth_header = headers.get("Authorization")
+            # if not auth_header or not auth_header.startswith("Bearer "):
+            #     return JsonResponse({"message": "Authorization token not supplied or improperly formatted"}, status=401)
 
-            token = auth_header.split(" ")[1]
-            print(token)
-            response = verify_jwt(token)
+            # token = auth_header.split(" ")[1]
+            # print(token)
+            # response = verify_jwt(token)
 
-            if response.get('status') == False:
-                return JsonResponse({"message" : response.get('msg')}, status = 401)
+            # if response.get('status') == False:
+            #     return JsonResponse({"message" : response.get('msg')}, status = 401)
             req_file = File.objects.get(pk=id)
             req_file.file.delete()
             req_file.save()
@@ -452,3 +460,20 @@ class Login(View):
                 return JsonResponse({"message": "Invalid Email"}, status= 400)
         except Exception as e:
             return JsonResponse({"message" : str(e)}, status=500)
+
+@method_decorator(csrf_exempt, name="dispatch")
+class BotApis(View):
+    def post(self, request):
+        try:
+            print("here")
+            data = json.loads(request.body)
+            user_query = data.get('user_query')
+            chat_id = data.get("chat_id")
+            global knowldgeBase
+            response = bot_response(knowledgeBase,user_query)
+            print("problem")
+            new_msg = Message(msg_txt = response, type=MessageType.BOT, chat=chat_id)
+            new_msg.save()
+            return JsonResponse({"message" : response} , status= 200)
+        except Exception as e:
+            return JsonResponse({"message": str(e)}, status=500)

@@ -50,13 +50,13 @@ function Chatroom() {
     },[chatHistory])
 
     useEffect(()=>{
-      if(chatHistory.length)
-      fetchChatFiles(chatHistory[0].id)
+      if(chatHistory.length){
+        console.log("from use effect")
+        fetchChatFiles(chatHistory[0].id)}
     },[chatHistory])
 
     const fetchChatFiles = (chatid) =>{
-      console.log("Fetching chat files")
-
+      console.log("Fetching chat files", chatid)
       fetch(`http://127.0.0.1:8000/doc_query/chat/${chatid}/files`,{
         method: "GET",
         headers:{
@@ -151,7 +151,7 @@ function Chatroom() {
       })
       .then(response => {
         if (!response.ok) {
-          throw new Error('Network response was not ok.');
+          throw new Error('Server response was not ok.');
         }
         return response.json();
       })
@@ -159,21 +159,47 @@ function Chatroom() {
         console.log('Success:', data);
       })
       .catch(error => {
-        console.error('There was a problem with the fetch operation:', error);
+        console.error('There was a problem with the fetch operation:', error.message);
       });
     }
 
-
-    const handleFileChange =(event)=>{
-      const files = Array.from(event.target.files)
-      setSelectedFiles(files)
-    }
+    const handleFileChange = (event) => {
+      const files = Array.from(event.target.files);
+      const filteredFiles = files.filter(file => file.size < 2 * 1024 * 1024);
+      setSelectedFiles(filteredFiles);
+      // event.target.value = ""
+    };
 
     const handleEnterKey = (event)=>{
       if (event.key ==="Enter" && event.target.value.length){
         createUserNewMessage(event.target.value,chatId)
         event.target.value = ""
       }
+    }
+    const createBotResponse = (user_query)=>{
+      console.log("Waiting for bots meesage..")
+      fetch("http://127.0.0.1:8000/doc_query/chat/message/bot",{
+        method: "POST",
+        headers: {
+          "Content-Type" : "application/json"
+        },
+        body: JSON.stringify({
+          "user_query": user_query,
+          "chat_id":chatId
+        })
+      })
+      .then((response)=>{
+        if(!response.ok){
+          console.log("error")
+          throw new Error("Server response was not ok")
+        }
+        return response.json()
+      })
+      .then((data)=>{
+        console.log(data)
+        fetchChatMessages(chatId)
+      })
+      .catch((error)=> console.error('There was a problem with the fetch operation:', error))
     }
 
     const createUserNewMessage = (content)=>{ // call the bot response funciton here
@@ -201,12 +227,15 @@ function Chatroom() {
         .then((data)=>{
           console.log(data)
           fetchChatMessages(chatId)
+          createBotResponse(content)
+
         })
         .catch((error)=> console.error('There was a problem with the fetch operation:', error))
 
     }
 
     const fetchChatMessages = (chatid) =>{
+      setChatId(chatid)
       console.log("Fetching Chat Messages....", chatid)
       fetch(`http://127.0.0.1:8000/doc_query/chat/${chatid}/messages`,{
         method:"GET",
@@ -226,8 +255,7 @@ function Chatroom() {
       .then((data)=>{
         console.log(data)
         setChatMessages(data)
-        setChatId(chatid)
-        fetchChatFiles(chatid)
+        // fetchChatFiles(chatid)
       })
       .catch((error)=> console.error('There was a problem with the fetch operation:', error))
     }
@@ -252,6 +280,8 @@ function Chatroom() {
       .then((data)=>{
         console.log(data)
         fetchUserChats()
+        // fetchChatMessages(chatId)
+        // setSelectedFiles([])
       })
       .catch((error) => console.error("There was a problem with the fetch operation:", error));
     }
@@ -333,6 +363,7 @@ function Chatroom() {
                 </MDBCol>
                 <MDBCol md="6" lg="5" xl="4" style={{marginTop:"20px"}}>
                     <h3>Upload PDFs</h3>
+                    <p className="text-muted">Select Files less than 2MB</p>
                         <Scrollbars 
                             style={{position:"relative" , height: "400px"}}
                             >
@@ -376,7 +407,7 @@ function Chatroom() {
                         <h4 className="large rounded-3 text-muted" style={{background: "lightblue", width:"250px", paddingLeft: "15px"}}>No messages so far!</h4>
                       </div>
                     )}
-                    {chatMessages.length>0 && (
+                    {(chatMessages.length>0 || chatHistory.length>0) && (
                       chatMessages.map((msg)=>{
                         if (msg.type === "MessageType.USER"){
                           return <div key={msg.id} className="d-flex flex-row justify-content-start">

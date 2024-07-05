@@ -19,7 +19,7 @@ class User(Document):
 
 
 class Chat(Document):
-    title = StringField(max_length=100, unique = True, required = True)
+    title = StringField(max_length=100, required = True)
     creation_timestamp = DateTimeField(default= lambda: datetime.datetime.now(datetime.timezone.utc))
     owner = ReferenceField(User , reverse_delete_rule=CASCADE) #cascading deletes to avoid inconsistancy
 

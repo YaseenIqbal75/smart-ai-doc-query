@@ -14,4 +14,5 @@ urlpatterns = [
     path("message/<str:id>", views.MessageApis.as_view(),name="update_delete_message"),
     path("file/", views.FileApis.as_view(), name="create_get_file"),
     path("file/<str:id>", views.FileApis.as_view(), name="updated_delete_file"),
+    path("chat/message/bot", views.BotApis.as_view(), name="bot_response")
 ]

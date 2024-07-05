@@ -359,14 +359,12 @@ class FileApis(View):
                 file_list = []
                 for file in File.objects:
                     if str(file.chat.id) == id:
-                        print("inside if")
                         file_obj = {
                         "id": str(file.id),
                         "name": file.name,
                         "chat": file.chat.title
                         }
                         file_list.append(file_obj)
-                print("above return")
                 return JsonResponse(file_list,safe=False,status=200)
             except Exception as e:
                 print("Exception : ", e)
@@ -465,13 +463,11 @@ class Login(View):
 class BotApis(View):
     def post(self, request):
         try:
-            print("here")
             data = json.loads(request.body)
             user_query = data.get('user_query')
             chat_id = data.get("chat_id")
             global knowldgeBase
             response = bot_response(knowledgeBase,user_query)
-            print("problem")
             new_msg = Message(msg_txt = response, type=MessageType.BOT, chat=chat_id)
             new_msg.save()
             return JsonResponse({"message" : response} , status= 200)

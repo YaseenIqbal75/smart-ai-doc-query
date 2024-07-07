@@ -9,12 +9,8 @@ An application that assists user upload multiple files and take assistance from 
 3. Implemeted RESTful apis for create,delete,read operations on Files
 5. Implemented RESTful apis for create operation on messages.
 6. Integerated JWT varification for user authentication and authorization
-### Frontend
-1. Login/SignUp
-2. User Authentication (JWT tokens)
-3. Create/Delete Chats.
-4. Upload Files
-5. Question Chatbot regarding the content of pdf
+7. Integrated OpenAI to provide assistance by generating answers to user questions from uploaded files.
+8. Utilizes LangChain for efficient language processing tasks and text management.
 
 ## Technologies Used
 1. Django 4.2.13 (Backend)
@@ -54,24 +50,12 @@ pip install -r requirements.txt
 python manage.py makemigrations
 python manage.py migrate
 ```
+#### Configure OpenAI API Integration
+```bash
+Get OpenAI API Key: Obtain your OpenAI API key from the OpenAI platform.
+Set API Key: Store your OpenAI API key securely. You can set it as an environment variable or directly in your Django settings (not recommended for production).
+Add OpenAI API key into this ENV: OPEN_AI_API_KEY
+```
 #### Go to the project directory and run server
 ```bash
-python manage.py runserver
-```
-
-### Frontend Setup:
-
-#### Navigate to the Frontend Directory
-
-```bash
-cd Frontend
-```
-
-#### Install Frontend Dependencies
-```bash
-npm install
-```
-#### Start the Frontend Server
-```bash
-npm start
-```
+python 

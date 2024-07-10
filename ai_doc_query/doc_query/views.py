@@ -7,7 +7,7 @@ from django.utils.decorators import method_decorator
 from .jwt_utils import *
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
-import os
+import os,io
 from .bot_utils import *
 from PyPDF2 import PdfReader
 
@@ -357,6 +357,7 @@ class FileApis(View):
         if id:
             try:
                 file_list = []
+                text = ""
                 for file in File.objects:
                     if str(file.chat.id) == id:
                         file_obj = {
@@ -364,7 +365,14 @@ class FileApis(View):
                         "name": file.name,
                         "chat": file.chat.title
                         }
+
+                        with open(f"uploads/{file.name}", "rb") as f:
+                           pdf =  PdfReader(f)
+                           for page in pdf.pages:
+                               text += page.extract_text()
                         file_list.append(file_obj)
+                        global knowldgeBase
+                        knowldgeBase = process_text(text)
                 return JsonResponse(file_list,safe=False,status=200)
             except Exception as e:
                 print("Exception : ", e)
@@ -456,9 +464,11 @@ class BotApis(View):
             user_query = data.get('user_query')
             chat_id = data.get("chat_id")
             global knowldgeBase
+            print(knowldgeBase)
             response = bot_response(knowledgeBase,user_query)
             new_msg = Message(msg_txt = response, type=MessageType.BOT, chat=chat_id)
             new_msg.save()
             return JsonResponse({"message" : response} , status= 200)
         except Exception as e:
+            print(e)
             return JsonResponse({"message": str(e)}, status=500)
